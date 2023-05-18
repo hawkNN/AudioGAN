@@ -10,11 +10,13 @@ import numpy as np
 def spectral_normalize_torch(magnitudes):
     output = dynamic_range_compression_torch(magnitudes)
     return output
+
 def dynamic_range_decompression_torch(x, C=1):
     return torch.exp(x) / C
 
 def dynamic_range_compression_torch(x, C=1, clip_val=1e-5):
     return torch.log(torch.clamp(x, min=clip_val) * C)
+
 def get_mel(x):
     return mel_spectrogram(x, 
                            h.n_fft, 
@@ -38,7 +40,6 @@ def mel_spectrogram(y,
   if torch.max(y) > 1.:
       print('max value is ', torch.max(y))
 
-  global mel_basis, hann_window
   if fmax not in mel_basis:
       mel = librosa.filters.mel(sr=sampling_rate, 
                                 n_fft=n_fft, 
@@ -103,9 +104,10 @@ def main():
   else:
       device = torch.device('cpu')
   MAX_WAV_VALUE = 32768.0
+  global mel_basis, hann_window
   mel_basis = {}
+  hann_window={}
   make_mel_spec(a.input_wav_dir,a.output_mel_dir)
 
-  
  if __name__ == "__main__":
   main()
