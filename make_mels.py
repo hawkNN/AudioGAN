@@ -109,5 +109,5 @@ def main():
   hann_window={}
   make_mel_spec(a.input_wav_dir,a.output_mel_dir)
 
- if __name__ == "__main__":
+if __name__ == "__main__":
   main()
