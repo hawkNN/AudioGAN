@@ -11,8 +11,15 @@ import numpy as np
 
 # functions
 
-def get_config(checkpoint_file):
-  config_file = os.path.join(os.path.split(checkpoint_file)[0], 'config.json').replace("\\","/")
+def get_config(file_path):
+  if file_path.endswith('.zip'):
+     config_file = os.path.join(os.path.split(file_path)[0], 'config.json').replace("\\","/")
+  elif file_path.endswith('.json'):
+     config_file = file_path
+  else:
+     config_file = input('Please provide config file path: ')
+  print(f'Config file: {config_file}')
+  
   with open(config_file) as f:
       data = f.read()
 
@@ -62,6 +69,7 @@ def main():
   parser = argparse.ArgumentParser()
   parser.add_argument('--mel_dir', default='mel_spects')
   parser.add_argument('--output_dir', default='mel_display') #None)
+  parser.add_argument('--config_file',  default='bigvgan_24khz_100band_config.json')
   parser.add_argument('--checkpoint_file',  default='bigvgan_24khz_100band-20230502T202754Z/bigvgan_24khz_100band/g_05000000.zip')
 
   a = parser.parse_args()
@@ -77,7 +85,13 @@ def main():
   mel_file = mel_samples[0]
   mel = np.load(os.path.join(a.mel_dir),mel_file)
 
-  h = get_config(a.checkpoint_file)
+  if os.path.exists(a.config_file):
+     h = get_config(a.config_file)
+  elif os.path.exists(a.checkpoint_file): 
+     h = get_config(a.checkpoint_file)
+  else: 
+     config_file = input('Please enter the config file path')
+     h = get_config(config_file)
   print(h)
 
   plot_mel(mel, h, ax=None,tytle=mel_file)
