@@ -64,6 +64,8 @@ def mel_spectrogram(y,
   return spec
 
 def make_mel_spec(wav_dir, output_dir):
+  if not os.path.exists(output_dir):
+     os.makedirs(output_dir)
   # create mel specs from wav files in wav_dir
   for filename in os.listdir(wav_dir):
     wav, sr = librosa.load(os.path.join(wav_dir, filename), sr=h.sampling_rate, mono=True)
@@ -72,19 +74,21 @@ def make_mel_spec(wav_dir, output_dir):
     x = get_mel(wav.unsqueeze(0))
     # save spectrogram
     save_path = os.path.join(output_dir,filename[:-4])
+    print(f'saving MEL spectrogram to: {save_path}')
     np.save(save_path, x)
     
 def main():
   print('Converting waves to mel spectrograms for BigVGAN')
 
   parser = argparse.ArgumentParser()
-  parser.add_argument('--checkpoint_file', default='/content/drive/MyDrive/bigvgan_24khz_100band-20230502T202754Z-001.zip')
-  parser.add_argument('--input_wav_dir', default='/content/drive/MyDrive/BigVGAN_clip_source')
-  parser.add_argument('--output_mel_dir', default='/content/drive/MyDrive/BigVGAN_melSpects')
+  parser.add_argument('--checkpoint_file', default='bigvgan_24khz_100band-20230502T202754Z/bigvgan_24khz_100band/g_05000000.zip')
+  parser.add_argument('--input_wav_dir', default='speech_clips')
+  parser.add_argument('--output_mel_dir', default='mel_spects')
 
   a = parser.parse_args()
 
-  config_file = os.path.join(os.path.split(a.checkpoint_file)[0], 'config.json')
+  config_file = os.path.join(os.path.split(a.checkpoint_file)[0], 'config.json').replace("\\","/")
+  print(f'config filepath is: {config_file}')
   with open(config_file) as f:
       data = f.read()
 
