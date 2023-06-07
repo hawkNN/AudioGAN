@@ -8,24 +8,24 @@ import json
 import numpy as np
 
 def spectral_normalize_torch(magnitudes):
-    output = dynamic_range_compression_torch(magnitudes)
-    return output
+   output = dynamic_range_compression_torch(magnitudes)
+   return output
 
 def dynamic_range_decompression_torch(x, C=1):
-    return torch.exp(x) / C
+   return torch.exp(x) / C
 
 def dynamic_range_compression_torch(x, C=1, clip_val=1e-5):
-    return torch.log(torch.clamp(x, min=clip_val) * C)
+   return torch.log(torch.clamp(x, min=clip_val) * C)
 
 def get_mel(x):
-    return mel_spectrogram(x, 
-                           h.n_fft, 
-                           h.num_mels, 
-                           h.sampling_rate, 
-                           h.hop_size, 
-                           h.win_size, 
-                           h.fmin, 
-                           h.fmax)
+  return mel_spectrogram(x, 
+                         h.n_fft, 
+                         h.num_mels, 
+                         h.sampling_rate, 
+                         h.hop_size, 
+                         h.win_size, 
+                         h.fmin, 
+                         h.fmax)
   
 def mel_spectrogram(y, 
                     n_fft, 
@@ -36,18 +36,18 @@ def mel_spectrogram(y,
                     fmin, fmax, 
                     center=False):
   if torch.min(y) < -1.:
-      print('min value is ', torch.min(y))
+     print('min value is ', torch.min(y))
   if torch.max(y) > 1.:
-      print('max value is ', torch.max(y))
+     print('max value is ', torch.max(y))
 
   if fmax not in mel_basis:
-      mel = librosa.filters.mel(sr=sampling_rate, 
+     mel = librosa.filters.mel(sr=sampling_rate, 
                                 n_fft=n_fft, 
                                 n_mels=num_mels, 
                                 fmin=fmin, 
                                 fmax=fmax)
-      mel_basis[str(fmax)+'_'+str(y.device)] = torch.from_numpy(mel).float().to(y.device)
-      hann_window[str(y.device)] = torch.hann_window(win_size).to(y.device)
+     mel_basis[str(fmax)+'_'+str(y.device)] = torch.from_numpy(mel).float().to(y.device)
+     hann_window[str(y.device)] = torch.hann_window(win_size).to(y.device)
 
   y = torch.nn.functional.pad(y.unsqueeze(1), (int((n_fft-hop_size)/2), int((n_fft-hop_size)/2)), mode='reflect')
   y = y.squeeze(1)
@@ -81,21 +81,27 @@ def main():
   print('Converting waves to mel spectrograms for BigVGAN')
 
   parser = argparse.ArgumentParser()
+  parser.add_argument('--config_file', default='bigvgan_24khz_100band_config.json')
   parser.add_argument('--checkpoint_file', default='bigvgan_24khz_100band-20230502T202754Z/bigvgan_24khz_100band/g_05000000.zip')
   parser.add_argument('--input_wav_dir', default='speech_clips')
   parser.add_argument('--output_mel_dir', default='mel_spects')
 
   a = parser.parse_args()
+  config_path = a.config_file
+  if not os.path.exists(config_path):
+     print(f'config filepath does not exist: {config_path}')
+     config_path = os.path.join(os.path.split(a.checkpoint_file)[0], 'config.json').replace("\\","/")
+  if not os.path.exists(config_path):
+     print(f'config filepath does not exist: {config_path}')
+     config_path = input('Please supply config file path:')
 
-  config_file = os.path.join(os.path.split(a.checkpoint_file)[0], 'config.json').replace("\\","/")
-  print(f'config filepath is: {config_file}')
-  with open(config_file) as f:
-      data = f.read()
+  with open(config_path) as f:
+     data = f.read()
 
   class AttrDict(dict):
-      def __init__(self, *args, **kwargs):
-          super(AttrDict, self).__init__(*args, **kwargs)
-          self.__dict__ = self
+     def __init__(self, *args, **kwargs):
+        super(AttrDict, self).__init__(*args, **kwargs)
+        self.__dict__ = self
 
   global h #hyperparameters for audio & MEL # don't need to define as global here.
   json_config = json.loads(data)
@@ -103,14 +109,16 @@ def main():
 
   global device # don't need to declare global here, but may move inside function calls
   if torch.cuda.is_available():
-      torch.cuda.manual_seed(h.seed)
-      device = torch.device('cuda')
+    torch.cuda.manual_seed(h.seed)
+    device = torch.device('cuda')
   else:
-      device = torch.device('cpu')
+    device = torch.device('cpu')
+
   MAX_WAV_VALUE = 32768.0
   global mel_basis, hann_window
   mel_basis = {}
   hann_window={}
+  
   make_mel_spec(a.input_wav_dir,a.output_mel_dir)
 
 if __name__ == "__main__":
