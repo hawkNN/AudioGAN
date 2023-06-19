@@ -4,7 +4,7 @@
 # imports
 import os, argparse
 import matplotlib.pyplot as plt
-import librosa
+import librosa, librosa.display
 import json
 import random
 import numpy as np
@@ -58,23 +58,40 @@ def plot_mel(mel,
     plt.colorbar(format='%+2.0f dB')
     plt.title(tytle)
     plt.tight_layout()
-    plt.show()
+    plt.show(block=False)
 
 def compare_mels(mel0, mel1):
   print('working on it')
    
-def show_mel_audio(mel_file,
-                   audio_file,
+def show_mel_audio(mel,
+                   audio,
                    h,
                    ax=None):
-   
+   #### RUN FROM mel & audio raw, not filename...
    fig, axes = plt.subplots(nrows=2, ncols=1, figsize=(10,5))
 
    # Display the spectrogram
    plt.sca(axes[0])
-   mel = np.load(mel_file)
+
+   # Handle mel input
+   # allow input of string for mel
+   if isinstance(mel,str):
+      if not os.path.exists(mel):
+         mel = input('Please specify path to MEL spectrogram:')
+      mel = np.load(mel)
+   # Useful if mel is torch-derived
    if len(mel.shape)==3:
       mel = mel.squeeze(0)
+   # end up with np array
+   assert(isinstance(mel,np.ndarray))
+  
+  # Handle audio input
+   if isinstance(audio,str):
+     if not os.path.exists(audio):
+         audio = input('Please specify path to audio file:')
+     audio = librosa.load(audio, sr=h.sampling_rate, mono=True)
+   # assert(isinstance(audio,)
+   
    librosa.display.specshow(mel, 
                             y_axis='mel', 
                             fmax=h.fmax, 
@@ -83,14 +100,14 @@ def show_mel_audio(mel_file,
                             x_axis='time')  
    axes[0].set(xlabel='time', ylabel='frequency')
    plt.colorbar(format='%+2.0f dB')
-   plt.title(os.path.split(mel_file)[-1])
+   # plt.title(os.path.split(mel_file)[-1])
    plt.tight_layout()
-   plt.show()
+   plt.show(block=False)
    
    # Display audio play button
    plt.sca(axes[1])
-   wn = Audio(audio_file, autoplay=True, rate=h.sampling_rate)
-   display(wn) 
+   # wn = Audio(audio_file, autoplay=True, rate=h.sampling_rate)
+   # display(wn) 
 
 
 # main
@@ -100,25 +117,15 @@ def main():
   parser = argparse.ArgumentParser()
   parser.add_argument('--mel_dir', default='mel_spects')
   parser.add_argument('--audio_dir', default='speech_clips')
-  parser.add_argument('--output_dir', default='mel_display') #None)
+  parser.add_argument('--random_sample', default=True)
+  parser.add_argument('--sample_amount', default=2)
+  parser.add_argument('--output_dir', default='None')
   parser.add_argument('--config_file',  default='bigvgan_24khz_100band_config.json')
   parser.add_argument('--checkpoint_file',  default='bigvgan_24khz_100band-20230502T202754Z/bigvgan_24khz_100band/g_05000000.zip')
 
   a = parser.parse_args()
 
-  if a.output_dir:
-     if not os.path.exists(a.output_dir):
-        os.makedirs(a.output_dir)
-  
-  mel_list = os.listdir(a.mel_dir)
-  mel_samples = random.sample(mel_list,2)
-  print(mel_samples)
-
-  mel_file = mel_samples[0]
-  mel = np.load(os.path.join(a.mel_dir,mel_file))
-  if len(mel.shape)==3:
-      mel = mel.squeeze(0)
-
+  # Get config path. Contains MEL parameters, e.g. hoplength & sampling rate
   if os.path.exists(a.config_file):
      h = get_config(a.config_file)
   elif os.path.exists(a.checkpoint_file): 
@@ -127,11 +134,35 @@ def main():
      config_file = input('Please enter the config file path')
      h = get_config(config_file)
 
-  plot_mel(mel, h, ax=None,tytle=mel_file)
-#   mel_path = os.path.join(a.mel_dir,mel_file)
-#   audio_path = os.path.join(a.audio_dir,mel_file)
-#   show_mel_audio(mel_path,audio_path,h)
+  # Get random samples, can also make it st file list works as input.
+  if a.random_sample:
+    # Find random file
+    mel_list = os.listdir(a.mel_dir)
+    mel_samples = random.sample(mel_list,a.sample_amount)
+    print(mel_samples)
+  else: 
+    input('Please input mel spec file path:')
 
+  # For each sample: load mel, load audio, then make a figure.
+  for file_name in mel_samples:
+    mel = np.load(os.path.join(a.mel_dir,file_name))
+    if len(mel.shape)==3:
+      mel = mel.squeeze(0)
+    audio_fn = os.path.splitext(file_name)[0]+'.mp3'
+    audio, sr = librosa.load(os.path.join(a.audio_dir, audio_fn), sr=h.sampling_rate, mono=True)
+    print(f'audio is type: {type(audio)}')
+   #  plot_mel(mel, h, ax=None, tytle=file_name)
+    show_mel_audio(mel, audio, h)
+
+
+  # If saving create the directory, then save the figure
+  if a.output_dir:
+     if not os.path.exists(a.output_dir):
+        os.makedirs(a.output_dir)
+      # save it
+
+  #Necessary to keep the debugger mode from closing figures.
+  plt.show()
 
 if __name__ == "__main__":
   main()
