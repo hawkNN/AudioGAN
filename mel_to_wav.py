@@ -82,12 +82,15 @@ def main():
     if not os.path.exists(config_path):
         print(f'config filepath does not exist: {config_path}')
         config_path = os.path.join(os.path.split(a.checkpoint_file)[0], 'config.json').replace("\\","/")
-        print(f'trying: {config_path}')
+        print(f'searching in checkpoint folder: {config_path}')
     if not os.path.exists(config_path):
         print(f'config filepath does not exist: {config_path}')
         config_path = input('Please supply config file path:')
         print(f'trying: {config_path}')
-
+    if not os.path.exists(a.output_dir):
+        os.mkdir(a.output_dir)
+    if not os.path.exists(a.input_mels_dir):
+        a.input_mels_dir = input('Please enter path to MEL directory:')
     
     with open(config_path) as f:
         data = f.read()
