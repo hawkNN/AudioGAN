@@ -8,6 +8,7 @@ import librosa, librosa.display
 import json
 import random
 import numpy as np
+import threading
 from IPython.display import Audio
 from IPython.display import display
 
@@ -90,7 +91,7 @@ def show_mel_audio(mel,
      if not os.path.exists(audio):
          audio = input('Please specify path to audio file:')
      audio = librosa.load(audio, sr=h.sampling_rate, mono=True)
-   # assert(isinstance(audio,)
+   assert(isinstance(audio,np.ndarray))
    
    librosa.display.specshow(mel, 
                             y_axis='mel', 
@@ -104,8 +105,14 @@ def show_mel_audio(mel,
    plt.tight_layout()
    plt.show(block=False)
    
+   music_thread = threading.Thread(target=play, args=(sound,))
+   
+   #ADD ANIMATION...
+   #ADD AUDIO
+
+
    # Display audio play button
-   plt.sca(axes[1])
+   # plt.sca(axes[1])
    # wn = Audio(audio_file, autoplay=True, rate=h.sampling_rate)
    # display(wn) 
 
@@ -150,7 +157,6 @@ def main():
       mel = mel.squeeze(0)
     audio_fn = os.path.splitext(file_name)[0]+'.mp3'
     audio, sr = librosa.load(os.path.join(a.audio_dir, audio_fn), sr=h.sampling_rate, mono=True)
-    print(f'audio is type: {type(audio)}')
    #  plot_mel(mel, h, ax=None, tytle=file_name)
     show_mel_audio(mel, audio, h)
 
