@@ -1,0 +1,63 @@
+from pydub import AudioSegment
+from pydub.playback import play
+import matplotlib.pyplot as plt
+from matplotlib.animation import FuncAnimation
+from scipy import signal
+import numpy as np
+import threading
+import time
+from datetime import timedelta
+
+audio_path = 'speech_clips/audioclipglory1_1.mp3'
+import librosa
+
+# Load the audio and get the raw data for transformation
+## REPLACE WITH librosa.load
+sound, sampling_rate = librosa.load(audio_path, mono=True)
+#sound = AudioSegment.from_mp3(audio_path)
+#sampling_rate = sound.frame_rate
+song_length = librosa.get_duration(y=sound, sr=sampling_rate)
+#left = sound.split_to_mono()[0]
+#x = left.get_array_of_samples()
+x = sound # MAYBE works, seems default type is nd.32
+# Fourier transform
+f, t, Zxx = signal.stft(x, fs=sampling_rate, nperseg=8820, noverlap=5292)
+y = np.abs(Zxx.transpose())
+
+# Setup a separate thread to play the music
+music_thread = threading.Thread(target=play, args=(sound,))
+
+# Build the figure
+fig = plt.figure(figsize=(14, 6))
+plt.style.use('seaborn-bright')
+ax = plt.axes(xlim=[0, 4000], ylim=[0, 80])
+line1, = ax.plot([], [])
+
+
+# Matplotlib function to initialize animation
+def init():
+    global annotation1, annotation2
+    line1.set_data([], [])
+    annotation1 = plt.annotate("Music: {}".format(""), xy=(0.2, 0.8), xycoords='figure fraction')
+    annotation2 = plt.annotate("Animation: {}".format(""), xy=(0.6, 0.8), xycoords='figure fraction')
+    return line1,
+
+
+# Function for the animation
+def animate(i):
+    global music_start, annotation1, annotation2
+
+    if i == 0:
+        music_thread.start()
+        music_start = time.perf_counter()
+
+    i = round((time.perf_counter() - music_start)/song_length * t.size)
+    line1.set_data(f, y[i])
+
+    annotation1.set_text("Music: {}".format(timedelta(seconds=(time.perf_counter() - music_start))))
+    annotation2.set_text("Animation: {}".format(timedelta(seconds=i / t.size * song_length)))
+    return line1,
+
+
+anim = FuncAnimation(fig, animate, init_func=init, interval=55)
+plt.show()
