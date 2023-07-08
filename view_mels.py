@@ -11,6 +11,8 @@ import numpy as np
 import threading
 from IPython.display import Audio
 from IPython.display import display
+from pydub.playback import play
+from matplotlib.animation import FuncAnimation
 
 # functions
 
@@ -67,7 +69,8 @@ def compare_mels(mel0, mel1):
 def show_mel_audio(mel,
                    audio,
                    h,
-                   ax=None):
+                   ax=None,
+                   tytle='MEL spectrogram'):
    #### RUN FROM mel & audio raw, not filename...
    fig, axes = plt.subplots(nrows=2, ncols=1, figsize=(10,5))
 
@@ -93,6 +96,7 @@ def show_mel_audio(mel,
      audio = librosa.load(audio, sr=h.sampling_rate, mono=True)
    assert(isinstance(audio,np.ndarray))
    
+   # Plot background MEL
    librosa.display.specshow(mel, 
                             y_axis='mel', 
                             fmax=h.fmax, 
@@ -102,19 +106,26 @@ def show_mel_audio(mel,
    axes[0].set(xlabel='time', ylabel='frequency')
    plt.colorbar(format='%+2.0f dB')
    # plt.title(os.path.split(mel_file)[-1])
+   plt.title(tytle)
+   plt.tight_layout()
    plt.tight_layout()
    plt.show(block=False)
    
-   music_thread = threading.Thread(target=play, args=(sound,))
    
-   #ADD ANIMATION...
-   #ADD AUDIO
 
+   #ADD ANIMATION to indicate time in MEL spect
+   
+   #ADD AUDIO
+   music_thread = threading.Thread(target=play, args=(audio,))
 
    # Display audio play button
    # plt.sca(axes[1])
    # wn = Audio(audio_file, autoplay=True, rate=h.sampling_rate)
    # display(wn) 
+   
+   # Call animate function to animate fig
+   # anim = FuncAnimation(fig, animate, init_func=init, interval=55)
+   # plt.show()
 
 
 # main
@@ -158,8 +169,7 @@ def main():
     audio_fn = os.path.splitext(file_name)[0]+'.mp3'
     audio, sr = librosa.load(os.path.join(a.audio_dir, audio_fn), sr=h.sampling_rate, mono=True)
    #  plot_mel(mel, h, ax=None, tytle=file_name)
-    show_mel_audio(mel, audio, h)
-
+    show_mel_audio(mel, audio, h, tytle=file_name)
 
   # If saving create the directory, then save the figure
   if a.output_dir:
