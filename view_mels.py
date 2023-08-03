@@ -132,6 +132,7 @@ def show_mel_audio(mel,
    mel_fragment = mel[0:freq_bins,0:mel_frame] # partial mel at tnow(sec) converted to mel_frame
 
    plt.sca(current_ax) 
+   # NEED to update to adjust linthresh iff too high
    mel_plot = librosa.display.specshow(mel_fragment, 
                             y_axis='mel', 
                             fmax=h.fmax, 
@@ -141,36 +142,15 @@ def show_mel_audio(mel,
    current_ax.set(xlabel='time', ylabel='frequency')
    current_ax.set_xlim([0,clip_duration]) # set xlim for entire clip duration
    cb = plt.colorbar(format='%+2.0f dB')
-   # paint it black
-   fig.patch.set_facecolor('xkcd:black')
-   current_ax.set_facecolor((0.06,0.06,0.06))
-   current_ax.spines['bottom'].set_color('white')
-   current_ax.spines['top'].set_color('white')
-   current_ax.spines['left'].set_color('white')
-   current_ax.spines['right'].set_color('white')
-   current_ax.xaxis.label.set_color('white')
-   current_ax.yaxis.label.set_color('white')
-   current_ax.grid(alpha=0.1)
-   current_ax.title.set_color('white')
-   current_ax.tick_params(axis='x', colors='white')
-   current_ax.tick_params(axis='y', colors='white')
-   # cb.set_label('dB', color='white')
-   cb.ax.yaxis.set_tick_params(color='white')
-   plt.setp(plt.getp(cb.ax.axes, 'yticklabels'), color='white')
 
-   # plt.title(os.path.split(mel_file)[-1])
+   paint_it_black(fig, current_ax, cb) # convert to black background with white foreground 
    plt.title(tytle)
    plt.tight_layout()
    plt.show(block=False)
    
-   print(f'xlim are {current_ax.get_xlim()}')
-   print(f'sampling rate is {h.sampling_rate}')
-   print(f'hop size is {h.hop_size}')
-
    #ADD ANIMATION to indicate time in MEL spect, update mel_plot over time.
    # Grow MEL, or plot increasing x components... FuncAnimation()
-
-
+   # simply limit 'mel_fragment & write function to plot that fragment.
 
    #ADD AUDIO
    music_thread = threading.Thread(target=play, args=(audio,))
