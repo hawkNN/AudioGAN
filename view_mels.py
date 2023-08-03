@@ -4,6 +4,8 @@
 # imports
 import os, argparse
 import matplotlib.pyplot as plt
+import matplotlib.animation as animation
+from matplotlib.animation import FuncAnimation
 import librosa, librosa.display
 import json
 import random
@@ -12,7 +14,9 @@ import threading
 from IPython.display import Audio
 from IPython.display import display
 from pydub.playback import play
-from matplotlib.animation import FuncAnimation
+
+
+
 
 # functions
 
@@ -65,20 +69,42 @@ def plot_mel(mel,
 
 def compare_mels(mel0, mel1):
   print('working on it')
-   
+
+def paint_it_black(fig, ax, cb):
+   fig.patch.set_facecolor('xkcd:black')
+   ax.set_facecolor((0.06,0.06,0.06))
+   ax.spines['bottom'].set_color('white')
+   ax.spines['top'].set_color('white')
+   ax.spines['left'].set_color('white')
+   ax.spines['right'].set_color('white')
+   ax.xaxis.label.set_color('white')
+   ax.yaxis.label.set_color('white')
+   ax.grid(alpha=0.1)
+   ax.title.set_color('white')
+   ax.tick_params(axis='x', colors='white')
+   ax.tick_params(axis='y', colors='white')
+   # cb.set_label('dB', color='white')
+   cb.ax.yaxis.set_tick_params(color='white')
+   plt.setp(plt.getp(cb.ax.axes, 'yticklabels'), color='white')
+
 def show_mel_audio(mel,
                    audio,
                    h,
-                   ax=None,
-                   tytle='MEL spectrogram'):
-   #### RUN FROM mel & audio raw, not filename...
-   fig, axes = plt.subplots(nrows=2, ncols=1, figsize=(10,5))
+                   axes=None,
+                   tytle='MEL spectrogram',
+                   figure_size = (10,5)):
+   
+   # create figure if not input.
+   if not axes:
+      fig, axes = plt.subplots(nrows=1, ncols=1, figsize=figure_size)
+   
+   # set current axis if multiple axes (room to grow, maybe excise), stupidly picks first
+   if len(fig.axes)>1:
+      current_ax = axes[0]
+   else:
+      current_ax = axes
 
-   # Display the spectrogram
-   plt.sca(axes[0])
-
-   # Handle mel input
-   # allow input of string for mel
+   # Handle mel if path used as input
    if isinstance(mel,str):
       if not os.path.exists(mel):
          mel = input('Please specify path to MEL spectrogram:')
@@ -89,7 +115,7 @@ def show_mel_audio(mel,
    # end up with np array
    assert(isinstance(mel,np.ndarray))
   
-  # Handle audio input
+  # Handle audio if path used as input
    if isinstance(audio,str):
      if not os.path.exists(audio):
          audio = input('Please specify path to audio file:')
@@ -97,24 +123,55 @@ def show_mel_audio(mel,
    assert(isinstance(audio,np.ndarray))
    
    # Plot background MEL
-   librosa.display.specshow(mel, 
+   tnow = 10 #in seconds
+
+   freq_bins = mel.shape[0] # number of y axis frequency bins
+   clip_duration = np.floor_divide(len(audio),h.sampling_rate) # duration of entire audio file in seconds
+   mel_frame = np.floor_divide(tnow*h.sampling_rate,h.hop_size) # convert tnow in seconds to mel frame
+
+   mel_fragment = mel[0:freq_bins,0:mel_frame] # partial mel at tnow(sec) converted to mel_frame
+
+   plt.sca(current_ax) 
+   mel_plot = librosa.display.specshow(mel_fragment, 
                             y_axis='mel', 
                             fmax=h.fmax, 
                             hop_length=h.hop_size, 
                             sr=h.sampling_rate,
                             x_axis='time')  
-   axes[0].set(xlabel='time', ylabel='frequency')
-   plt.colorbar(format='%+2.0f dB')
+   current_ax.set(xlabel='time', ylabel='frequency')
+   current_ax.set_xlim([0,clip_duration]) # set xlim for entire clip duration
+   cb = plt.colorbar(format='%+2.0f dB')
+   # paint it black
+   fig.patch.set_facecolor('xkcd:black')
+   current_ax.set_facecolor((0.06,0.06,0.06))
+   current_ax.spines['bottom'].set_color('white')
+   current_ax.spines['top'].set_color('white')
+   current_ax.spines['left'].set_color('white')
+   current_ax.spines['right'].set_color('white')
+   current_ax.xaxis.label.set_color('white')
+   current_ax.yaxis.label.set_color('white')
+   current_ax.grid(alpha=0.1)
+   current_ax.title.set_color('white')
+   current_ax.tick_params(axis='x', colors='white')
+   current_ax.tick_params(axis='y', colors='white')
+   # cb.set_label('dB', color='white')
+   cb.ax.yaxis.set_tick_params(color='white')
+   plt.setp(plt.getp(cb.ax.axes, 'yticklabels'), color='white')
+
    # plt.title(os.path.split(mel_file)[-1])
    plt.title(tytle)
    plt.tight_layout()
-   plt.tight_layout()
    plt.show(block=False)
    
-   
+   print(f'xlim are {current_ax.get_xlim()}')
+   print(f'sampling rate is {h.sampling_rate}')
+   print(f'hop size is {h.hop_size}')
 
-   #ADD ANIMATION to indicate time in MEL spect
-   
+   #ADD ANIMATION to indicate time in MEL spect, update mel_plot over time.
+   # Grow MEL, or plot increasing x components... FuncAnimation()
+
+
+
    #ADD AUDIO
    music_thread = threading.Thread(target=play, args=(audio,))
 
@@ -182,8 +239,3 @@ def main():
 
 if __name__ == "__main__":
   main()
-
-
-
-
-
