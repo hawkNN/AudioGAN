@@ -102,22 +102,7 @@ def update_mel(mel,
 def compare_mels(mel0, mel1):
    print('working on it')
 
-def show_mel_audio(mel,
-                  audio,
-                  h,
-                  axes=None,
-                  tytle='MEL spectrogram',
-                  figure_size = (10,5)):
-   # create figure if not input.
-   if not axes:
-      fig, axes = plt.subplots(nrows=1, ncols=1, figsize=figure_size)
-
-   # set current axis if multiple axes (room to grow, maybe excise), stupidly picks first
-   if len(fig.axes)>1:
-      current_ax = axes[0]
-   else:
-      current_ax = axes
-
+def mel_input_check(mel):
    # Handle mel if path used as input
    if isinstance(mel,str):
       if not os.path.exists(mel):
@@ -128,13 +113,36 @@ def show_mel_audio(mel,
       mel = mel.squeeze(0)
    # end up with np array
    assert(isinstance(mel,np.ndarray))
+   return mel
 
+def audio_input_check(audio):
    # Handle audio if path used as input
    if isinstance(audio,str):
       if not os.path.exists(audio):
          audio = input('Please specify path to audio file:')
       audio = librosa.load(audio, sr=h.sampling_rate, mono=True)
    assert(isinstance(audio,np.ndarray))
+   return audio
+
+
+
+def show_mel_audio(mel,
+                  audio,
+                  h,
+                  fig=None,
+                  axes=None,
+                  select_ax=0,
+                  tytle='MEL spectrogram',
+                  figure_size = (10,5)):
+   # create figure if not input.
+   if (not axes) or (not fig):
+      fig, axes = plt.subplots(nrows=1, ncols=1, figsize=figure_size)
+
+   current_ax = fig.axes[select_ax]  # attend to axes of interest if multiaxis figure
+
+   #Handle input variance
+   mel = mel_input_check(mel)
+   audio = audio_input_check(audio)
 
    clip_duration = np.floor_divide(len(audio),h.sampling_rate) # duration of entire audio file in seconds
 
