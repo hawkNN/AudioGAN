@@ -42,34 +42,6 @@ def get_config(file_path):
 
   return AttrDict(json_config)
 
-def plot_mel(mel,
-             h,
-             ax=None,
-             tytle='MEL spectrogram'):
-    # get dims for mel, compress to 2-D if needed.
-    # if no axis specified create singleton.
-    if not ax:
-        fig, ax = plt.subplots(figsize=(10,5))
-
-    # Display the spectrogram
-
-    plt.sca(ax)
-    librosa.display.specshow(mel, y_axis='mel', 
-                             fmax=h.fmax, 
-                             hop_length=h.hop_size, 
-                             sr=h.sampling_rate,
-                             x_axis='time')    
-    # fig.suptitle(tytle)
-
-    ax.set(xlabel='time', ylabel='frequency')
-    plt.colorbar(format='%+2.0f dB')
-    plt.title(tytle)
-    plt.tight_layout()
-    plt.show(block=False)
-
-def compare_mels(mel0, mel1):
-  print('working on it')
-
 def paint_it_black(fig, ax, cb):
    fig.patch.set_facecolor('xkcd:black')
    ax.set_facecolor((0.06,0.06,0.06))
@@ -87,17 +59,59 @@ def paint_it_black(fig, ax, cb):
    cb.ax.yaxis.set_tick_params(color='white')
    plt.setp(plt.getp(cb.ax.axes, 'yticklabels'), color='white')
 
-def show_mel_audio(mel,
-                   audio,
-                   h,
-                   axes=None,
-                   tytle='MEL spectrogram',
-                   figure_size = (10,5)):
+def plot_mel(mel,
+            h,
+            clip_duration,
+            ax=None,
+            fig=None,
+            tytle='MEL spectrogram',
+            figure_size = (10,5)):
+   # get dims for mel, compress to 2-D if needed.
+   # if no axis specified create singleton.
+   if not ax:
+      fig, ax = plt.subplots(figsize=figure_size)
+
+   # Display the spectrogra
+   plt.sca(ax)
+   mel_plot = librosa.display.specshow(mel, 
+                                       y_axis='mel', 
+                                       fmax=h.fmax, 
+                                       hop_length=h.hop_size, 
+                                       sr=h.sampling_rate,
+                                       x_axis='time')    
    
+
+   ax.set(xlabel='time', ylabel='frequency')
+   ax.set_xlim([0,clip_duration]) # set xlim for entire clip duration
+   cb = plt.colorbar(format='%+2.0f dB')
+   paint_it_black(fig, ax, cb) # convert to black background with white foreground 
+   plt.title(tytle)
+   plt.tight_layout()
+   plt.show(block=False)
+
+   return mel_plot
+
+def update_mel(mel, 
+               h,
+               tnow):
+   freq_bins = mel.shape[0] # number of y axis frequency bins
+   mel_frame = np.floor_divide(tnow*h.sampling_rate,h.hop_size) # convert tnow in seconds to mel frame
+   mel_fragment = mel[0:freq_bins,0:mel_frame] # partial mel at tnow(sec) converted to mel_frame
+   return mel_fragment
+
+def compare_mels(mel0, mel1):
+   print('working on it')
+
+def show_mel_audio(mel,
+                  audio,
+                  h,
+                  axes=None,
+                  tytle='MEL spectrogram',
+                  figure_size = (10,5)):
    # create figure if not input.
    if not axes:
       fig, axes = plt.subplots(nrows=1, ncols=1, figsize=figure_size)
-   
+
    # set current axis if multiple axes (room to grow, maybe excise), stupidly picks first
    if len(fig.axes)>1:
       current_ax = axes[0]
@@ -114,43 +128,36 @@ def show_mel_audio(mel,
       mel = mel.squeeze(0)
    # end up with np array
    assert(isinstance(mel,np.ndarray))
-  
-  # Handle audio if path used as input
+
+   # Handle audio if path used as input
    if isinstance(audio,str):
-     if not os.path.exists(audio):
+      if not os.path.exists(audio):
          audio = input('Please specify path to audio file:')
-     audio = librosa.load(audio, sr=h.sampling_rate, mono=True)
+      audio = librosa.load(audio, sr=h.sampling_rate, mono=True)
    assert(isinstance(audio,np.ndarray))
-   
-   # Plot background MEL
-   tnow = 10 #in seconds
 
-   freq_bins = mel.shape[0] # number of y axis frequency bins
    clip_duration = np.floor_divide(len(audio),h.sampling_rate) # duration of entire audio file in seconds
-   mel_frame = np.floor_divide(tnow*h.sampling_rate,h.hop_size) # convert tnow in seconds to mel frame
 
-   mel_fragment = mel[0:freq_bins,0:mel_frame] # partial mel at tnow(sec) converted to mel_frame
+   # Plot background MEL
+   tnow = 10 #in seconds, adjust in a loop synchronized with playing audio
+   # tnow needs to be update in a loop to animate plot.
+
+   mel_fragment = update_mel(mel,h,tnow) # create mel fragment updated based on current time...
+   # 'artist' should update with this...
 
    plt.sca(current_ax) 
-   # NEED to update to adjust linthresh iff too high
-   mel_plot = librosa.display.specshow(mel_fragment, 
-                            y_axis='mel', 
-                            fmax=h.fmax, 
-                            hop_length=h.hop_size, 
-                            sr=h.sampling_rate,
-                            x_axis='time')  
-   current_ax.set(xlabel='time', ylabel='frequency')
-   current_ax.set_xlim([0,clip_duration]) # set xlim for entire clip duration
-   cb = plt.colorbar(format='%+2.0f dB')
+   plot_mel(mel_fragment,
+            h,
+            clip_duration,
+            ax=current_ax,
+            fig=fig,
+            tytle=tytle,
+            figure_size = figure_size)
 
-   paint_it_black(fig, current_ax, cb) # convert to black background with white foreground 
-   plt.title(tytle)
-   plt.tight_layout()
-   plt.show(block=False)
-   
+
    #ADD ANIMATION to indicate time in MEL spect, update mel_plot over time.
    # Grow MEL, or plot increasing x components... FuncAnimation()
-   # simply limit 'mel_fragment & write function to plot that fragment.
+   # simply limit 'mel_fragment' to tnow & plot with plot_mel....
 
    #ADD AUDIO
    music_thread = threading.Thread(target=play, args=(audio,))
@@ -159,11 +166,10 @@ def show_mel_audio(mel,
    # plt.sca(axes[1])
    # wn = Audio(audio_file, autoplay=True, rate=h.sampling_rate)
    # display(wn) 
-   
+
    # Call animate function to animate fig
    # anim = FuncAnimation(fig, animate, init_func=init, interval=55)
    # plt.show()
-
 
 # main
 def main():
