@@ -4,6 +4,7 @@
 # imports
 import os, argparse
 import matplotlib.pyplot as plt
+import matplotlib.cm as cm
 import matplotlib.animation as animation
 from matplotlib.animation import FuncAnimation
 import librosa, librosa.display
@@ -150,25 +151,42 @@ def animate_mel_spectrogram(audio_file_path,
                                                     sr=sr)
    mel_spectrogram_db = librosa.power_to_db(mel_spectrogram, ref=np.max)
 
-   clip_duration = np.floor_divide(len(y),sr) # duration of entire audio file in seconds
+   # clip_duration = np.floor_divide(len(y),sr) # duration of entire audio file in seconds
+   clip_duration =  mel_spectrogram_db.shape[1]
+   print(f'clip duration is: {clip_duration}')
 
    # Create figure and axis for animation
    fig, ax = plt.subplots()
    im = ax.imshow(mel_spectrogram_db, aspect='auto', origin='lower', cmap='viridis')
+   
+   # using set_bad/NaN to update unused frames as black
+   current_cmap = cm.get_cmap()
+   current_cmap.set_bad(color='black')
+
+   # improve illustration of plot
    cb = plt.colorbar(im, format="%+2.0f dB")
    ax.set_title(tytle)
    ax.set(xlabel='time', ylabel='frequency')
-   ## FIX. this changes label without actually changing the range... WHY?????
-   # ax.set_xlim([0,clip_duration]) # set xlim for entire clip duration
    paint_it_black(fig, ax, cb) # convert to black background with white foreground 
    plt.title(tytle)
    plt.tight_layout()
    plt.show(block=False)
+   # Need to change x-labels to time... 938frames = 10sec 
+   # ax.set_xlim([0,clip_duration]) # set xlim for entire clip duration ##NEED?
 
    # Define a function to update the animation
    def update(frame):
-      im.set_data(mel_spectrogram_db[:, :frame])
+      # this creates a limited growing plot, x-axis all wrong & less informative to me with dynamic x scaling
+      # updated_mel_spectrogram_db = mel_spectrogram_db
+      # updated_mel_spectrogram_db[:,frame:-1]=np.nan
+      #mel_spectrogram_db[:,:frame]+
+      # out_im = ax.imshow(updated_mel_spectrogram_db, aspect='auto', origin='lower', cmap='viridis')
+      # im.set_data(mel_spectrogram_db[:, :frame]) # This works to produce growing image, but not it.
       # really, I want to set data to entirety but just black from 'frame:-1'
+      # trying to use/abuse set_bad for colormap
+      im.set_data(mel_spectrogram_db[:, :frame]) # This works to produce growing image, but not it.
+      ax.set_xlim([0,clip_duration]) # set xlim for entire clip duration ##NEED?      
+      ### MAYBE I CAN JUST UPDATE THE x-axis in the update function!!!
       return im,
 
    # Calculate total frames for animation
@@ -176,7 +194,7 @@ def animate_mel_spectrogram(audio_file_path,
    output_fps = int(sr/hop) # mel 'frames' relate to video time by sr/hop_size
 
    # Create the animation
-   ani = FuncAnimation(fig, update, frames=total_frames, blit=True, repeat=False)
+   ani = FuncAnimation(fig, update, frames=total_frames, blit=False, repeat=False)
 
    if output_video_path:
       output_video_path = output_video_path.lower()
@@ -191,7 +209,7 @@ def animate_mel_spectrogram(audio_file_path,
 def combine_audio_and_video(audio_file_path, 
                             video_file_path, 
                             output_video_path,
-                            sampling_rate=22050):
+                            sampling_rate=24000):
     #Load audio & video clips
     audio_clip = AudioFileClip(audio_file_path, fps=sampling_rate)
     video_clip = VideoFileClip(video_file_path, audio_fps=sampling_rate)
@@ -312,10 +330,6 @@ def main():
     #  show_mel_audio(mel, audio, h, tytle=file_name)
     video_file_path = os.path.join(a.output_dir,'temp.mp4')
     av_file_path = os.path.join(a.output_dir,os.path.splitext(file_name)[0]+'.mp4')
-    ## ISSUE: animation is stretch from 10sec to 46sec
-    # B/C of hop length, video is 938 frames: 10sec * 24000sr/256hopsize
-    # video fps should be determined by these numbers: int(sr/hop_size)?
-    # 
     ###
     # Also, video is ugly, paint_it_black() & better labeling
     animate_mel_spectrogram(audio_file_path, 
@@ -326,7 +340,7 @@ def main():
                             video_file_path,
                             av_file_path, 
                             sampling_rate=h.sampling_rate)
-
+    print(f'sampling rate is: {h.sampling_rate}')
   #Necessary to keep the debugger mode from closing figures.
 #   plt.show()
 
