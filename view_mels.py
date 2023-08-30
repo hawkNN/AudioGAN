@@ -17,6 +17,15 @@ from pydub.playback import play
 from matplotlib.animation import FuncAnimation
 from moviepy.editor import VideoFileClip, AudioFileClip
 
+#Status:
+#  Produces reasonable quality audio-MEL display video
+#Improvements: 
+#  I would prefer constant x-axis on display. Ask chatGPT how to update this
+#  Trim garbage... Lots in the comments & extraneous code attempts.
+#  Compare side-by-side & delta.
+
+
+
 # functions
 def get_config(file_path):
   if file_path.endswith('.zip'):
@@ -137,10 +146,11 @@ def animate_mel_spectrogram(audio_file_path,
    else: 
       # I NEED TO CHOOSE Defaults that generally work...
       Warning('No spectrogram parameters input in animate_mel_spectrogram(), using default values')
-      sr = None
+      sr = 24000
       fmax = None
-      hop = None
+      hop = 256
    # Load audio if path
+   print(f'fmax is: {h.fmax}')
    y, sr = audio_input_check(audio_file_path,
                              sampling_rate=sr)
 
@@ -150,10 +160,6 @@ def animate_mel_spectrogram(audio_file_path,
                                                     hop_length=hop, 
                                                     sr=sr)
    mel_spectrogram_db = librosa.power_to_db(mel_spectrogram, ref=np.max)
-
-   # clip_duration = np.floor_divide(len(y),sr) # duration of entire audio file in seconds
-   clip_duration =  mel_spectrogram_db.shape[1]
-   print(f'clip duration is: {clip_duration}')
 
    # Create figure and axis for animation
    fig, ax = plt.subplots()
@@ -171,22 +177,10 @@ def animate_mel_spectrogram(audio_file_path,
    plt.title(tytle)
    plt.tight_layout()
    plt.show(block=False)
-   # Need to change x-labels to time... 938frames = 10sec 
-   # ax.set_xlim([0,clip_duration]) # set xlim for entire clip duration ##NEED?
 
    # Define a function to update the animation
    def update(frame):
-      # this creates a limited growing plot, x-axis all wrong & less informative to me with dynamic x scaling
-      # updated_mel_spectrogram_db = mel_spectrogram_db
-      # updated_mel_spectrogram_db[:,frame:-1]=np.nan
-      #mel_spectrogram_db[:,:frame]+
-      # out_im = ax.imshow(updated_mel_spectrogram_db, aspect='auto', origin='lower', cmap='viridis')
-      # im.set_data(mel_spectrogram_db[:, :frame]) # This works to produce growing image, but not it.
-      # really, I want to set data to entirety but just black from 'frame:-1'
-      # trying to use/abuse set_bad for colormap
-      im.set_data(mel_spectrogram_db[:, :frame]) # This works to produce growing image, but not it.
-      ax.set_xlim([0,clip_duration]) # set xlim for entire clip duration ##NEED?      
-      ### MAYBE I CAN JUST UPDATE THE x-axis in the update function!!!
+      im.set_data(mel_spectrogram_db[:, :frame]) 
       return im,
 
    # Calculate total frames for animation
