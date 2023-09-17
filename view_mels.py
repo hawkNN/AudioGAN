@@ -130,9 +130,6 @@ def update_mel(mel,
    mel_fragment = mel[0:freq_bins,0:mel_frame] # partial mel at tnow(sec) converted to mel_frame
    return mel_fragment
 
-def compare_mels(mel0, mel1):
-   print('side-by-side & delta images?')
-
 def mel_input_check(mel):
    # Handle mel if path used as input
    if isinstance(mel,str):
@@ -173,6 +170,8 @@ def animate_mel_spectrogram(audio_file_path,
       sr = 24000
       fmax = 12000
       hop = 256
+
+   # load audio
    y, sr = audio_input_check(audio_file_path,
                              sampling_rate=sr)
 
@@ -244,6 +243,7 @@ def show_mel_audio(mel,
                   select_ax=0,
                   tytle='MEL spectrogram',
                   figure_size = (10,5)):
+   # NOTE: ANIMATION aspect is obviated by animate_mel_spectrogram(). Should I change this to static or eliminate?
    # create figure if not input.
    if (not axes) or (not fig):
       fig, axes = plt.subplots(nrows=1, ncols=1, figsize=figure_size)
