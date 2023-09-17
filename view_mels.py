@@ -69,8 +69,8 @@ def paint_it_black(fig, ax, cb):
 def plot_mel(mel,
             h,
             clip_duration,
-            ax=None,
             fig=None,
+            ax=None,
             tytle='MEL spectrogram',
             figure_size = (10,5)):
    # get dims for mel, compress to 2-D if needed.
@@ -97,6 +97,30 @@ def plot_mel(mel,
    plt.show(block=False)
 
    return mel_plot
+
+def plot_difference_spectrogram(mel_spectrogram1, 
+                                mel_spectrogram2, 
+                                fig=None,
+                                ax=None,
+                                figure_size=(10,5),
+                                title='Difference Spectrogram'):
+    
+    # if no axis specified create singleton.
+    if not ax:
+      fig, ax = plt.subplots(figsize=figure_size)
+
+    # Calculate the absolute difference spectrogram
+    difference_spectrogram = np.abs(mel_spectrogram1 - mel_spectrogram2)
+
+    # Apply logarithmic scaling for better visualization
+    difference_spectrogram = np.log(1 + difference_spectrogram)
+
+    plt.title(title)
+    librosa.display.specshow(difference_spectrogram, cmap='viridis', sr=sr, hop_length=hop)
+    plt.colorbar(format='%+2.0f dB')
+
+    return 
+
 
 def update_mel(mel, 
                h,
@@ -138,19 +162,17 @@ def animate_mel_spectrogram(audio_file_path,
                             output_video_path='../GitOutbox',
                             h=None,
                             tytle='Mel spectrogram'):
-   # NEED TO DO: set h default values to work
+   # Get parameter values used for bigvgan, input through variable 'h'
    if h:
       sr = h.sampling_rate
       fmax = h.fmax
       hop = h.hop_size
    else: 
-      # I NEED TO CHOOSE Defaults that generally work...
+      # Defaults based on bigvgan 24khz 100band config
       Warning('No spectrogram parameters input in animate_mel_spectrogram(), using default values')
       sr = 24000
-      fmax = None
+      fmax = 12000
       hop = 256
-   # Load audio if path
-   print(f'fmax is: {h.fmax}')
    y, sr = audio_input_check(audio_file_path,
                              sampling_rate=sr)
 
