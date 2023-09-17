@@ -1,13 +1,5 @@
 # implements https://github.com/NVIDIA/BigVGAN under the MIT License
 
-
-# Notes, 
-    # May not want os.chdir in find_bigvgan
-
-# If bigvgan repo present, cd to that repo.
-# Else clone it. 
-# Then feed mel-directory into inference_e2e.py
-
 import os, argparse
 from git import Repo
 # requirements for bigvgan
@@ -52,16 +44,24 @@ def main():
   parser.add_argument('--checkpoint_path', default='..\checkpoint_files\bigvgan_24khz_100band-20230502T202754Z\bigvgan_24khz_100band\g_05000000.zip')
   parser.add_argument('--mel_dir', default='mel_spects')
   parser.add_argument('--bigvgan_dir', default='./bigvgan')
-  parser.add_argument('--output_dir', default='bigvgan_output')
+  parser.add_argument('--output_dir', default='./GitOutbox/bigvgan_output')
+  parser.add_argument('--verbose', default=True)
 
   a = parser.parse_args()
 
-#   print(f'Downloading mp3 files from {a.target_url}')
-#   print(f'Download limit {a.max_files} files')
-#   print(f'Saving in {a.output_dir}')
-  
+  if a.verbose:
+    print(f'Downloading mp3 files from {a.target_url}')
+    print(f'Download limit {a.max_files} files')
+    
   if not os.path.exists(a.output_dir):
-    os.mkdir(a.output_dir)
+    try:
+      os.mkdir(a.output_dir)
+    except:
+      a.output_dir = input("Please specify output path:")
+      if not os.path.exists(a.output_dir):
+        os.mkdir(a.output_dir)
+  if a.verbose:
+    print(f'storing bigVgan output in {a.output_dir}')
 
   repo_dir = confirm_repo(a.bigvgan_dir) # assign abs_path output? May help direct other commands
 
