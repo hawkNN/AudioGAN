@@ -121,7 +121,7 @@ def plot_difference_spectrogram(mel_spectrogram1,
 
     return 
 
-
+# DELETE WHEN animate_mel_spectrogram Complete
 def update_mel(mel, 
                h,
                tnow):
@@ -157,7 +157,8 @@ def audio_input_check(audio, sampling_rate=None):
 
 def animate_mel_spectrogram(audio_file_path, 
                             output_video_path='../GitOutbox',
-                            h=None,
+                            h=None, # parameters of audio => MEL conversion, based on bigvgan
+                            mel_window= 5, # seconds
                             tytle='Mel spectrogram'):
    # Get parameter values used for bigvgan, input through variable 'h'
    if h:
@@ -167,9 +168,9 @@ def animate_mel_spectrogram(audio_file_path,
    else: 
       # Defaults based on bigvgan 24khz 100band config
       Warning('No spectrogram parameters input in animate_mel_spectrogram(), using default values')
-      sr = 24000
-      fmax = 12000
-      hop = 256
+      sr = 24000 #samples/second
+      fmax = 12000 # maximal frequency
+      hop = 256 # mel hop size used for fft to create mel spectrogram
 
    # load audio
    y, sr = audio_input_check(audio_file_path,
@@ -179,8 +180,20 @@ def animate_mel_spectrogram(audio_file_path,
    mel_spectrogram = librosa.feature.melspectrogram(y=y,
                                                     fmax=fmax, 
                                                     hop_length=hop, 
+                                                    win_length=mel_window,
                                                     sr=sr)
    mel_spectrogram_db = librosa.power_to_db(mel_spectrogram, ref=np.max)
+
+   # Calculate maximum MEL duration, mel_window, to display in frames for max_frame
+   print(f'mel_window: {mel_window} secs')
+   print(f'h.sampling rate: {h.sampling_rate} samples/sec')
+   print(f'h.hop_size: {h.hop_size} samples')
+   ###### CORRECT CALCULATION HERE  #########
+   max_frame = int(np.ceil((mel_window * h.sampling_rate) / h.hop_size))
+   print(f'max_frame is: {max_frame} MEL frames')
+   min_mel_value = np.min(mel_spectrogram_db)
+   print(f'min_mel_value is: {min_mel_value} dB')
+   
 
    # Create figure and axis for animation
    fig, ax = plt.subplots()
@@ -199,10 +212,26 @@ def animate_mel_spectrogram(audio_file_path,
    plt.tight_layout()
    plt.show(block=False)
 
+   # ORIGINAL METHOD, works
    # Define a function to update the animation
    def update(frame):
       im.set_data(mel_spectrogram_db[:, :frame]) 
       return im,
+
+   # # Attempting to keep constant xlim...
+   # # Define a function to update the animation
+   # # WORKS great in terms of timing, but I don't think the cmap is working out...
+   # def update(frame):
+   #    # make a single zero-filled frame up to max_frame, then rolling window after filled 
+   #    if frame<max_frame:
+   #       # make zeros to fill with current data.
+   #       mel_dummy = np.empty((np.shape(mel_spectrogram_db)[0],(max_frame-1))) # MAYBE NANs better? 
+   #       mel_dummy.fill(np.nan)
+   #       mel_dummy[:,:frame] = mel_spectrogram_db[:, :frame]
+   #       im.set_data(mel_dummy) 
+   #    else:
+   #       im.set_data(mel_spectrogram_db[:, (frame-max_frame):frame]) 
+   #    return im,
 
    # Calculate total frames for animation
    total_frames = mel_spectrogram_db.shape[1]
@@ -300,13 +329,16 @@ def main():
   parser = argparse.ArgumentParser()
   parser.add_argument('--audio_dir', default='speech_clips')
   parser.add_argument('--mel_dir', default='mel_spects')
-  parser.add_argument('--random_sample', default=True)
+  parser.add_argument('--audio_sample', default=False) # Change to name... if empty, create random?
   parser.add_argument('--sample_amount', default=1)
   parser.add_argument('--output_dir', default='../GitOutbox')
   parser.add_argument('--config_file',  default='bigvgan_24khz_100band_config.json')
   parser.add_argument('--checkpoint_file',  default='bigvgan_24khz_100band-20230502T202754Z/bigvgan_24khz_100band/g_05000000.zip')
 
   a = parser.parse_args()
+
+  # I need to setup so argument role is clear, copy other files, e.g. np stuff.
+
 
   # If saving, create the directory, then save the figure
   if a.output_dir:
@@ -324,13 +356,15 @@ def main():
 
   # Get random samples, can also make it st file list works as input.
   # BASE around audio_dir, because I do NOT need pre-existing MELs
-  if a.random_sample:
+  if a.audio_sample:
+    # Create list with audio sample.
+    audio_samples = {a.audio_sample}
+  else: 
     # Find random file
     audio_list = os.listdir(a.audio_dir)
     audio_samples = random.sample(audio_list,a.sample_amount)
     print(f'creating mel spectrogram animations for: {audio_samples}')
-  else: 
-    input('Please input mel spec file path:')
+   #  input('Please input mel spec file path:')
 
 #  For each sample: load mel, load audio, then make a figure.
   for file_name in audio_samples:
