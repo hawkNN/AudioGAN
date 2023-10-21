@@ -23,11 +23,12 @@ from make_a_mel import generate_mel, mel_Tensor_to_np
 # Overall Status:
 #  Produces reasonable quality audio-MEL display video with good timing and window
 # Issues: 
-#  1. Current MEL generation in animate_mel_spectrogram isn't a good range & probably won't work well with bigVgan
-#      Solution: incorporate make_mels.py methods (from bigVgan) to produce the MEL.
+#  1. 
 
 #Improvements: 
 #  1. Add a transverse wave representation panel? Definitely here in this function as a two-panel view. Compression wave?
+      # place in animate_mel()? 
+      # also place in plot_mel()?
 #  2. Should paired comparisons be in a separate function? I think so, it would be better to be able to call each function to achieve a goal
 #   What about libraries? Can I plug related functions into a common sub-library contained within the overarching AudioGAN library
 #  3. I need to setup comments/help so argument role is clear, copy other files, e.g. look at numpy files.
@@ -127,7 +128,6 @@ def generate_mel(audio_path,h): # produce mel spectrogram as tensor
 def mel_Tensor_to_np(mel_tensor): # convert mel as tensor to mel as np for plotting
     mel_np=mel_tensor.detach().numpy()
     mel_np=np.reshape(mel_np,(np.shape(mel_np)[1],np.shape(mel_np)[2]))
-    print(f'shape of mel is {np.shape(mel_np)} of type {mel_np.dtype}')
     return mel_np
 
 def paint_it_black(fig, ax, cb): # white-on-black figure conversion
@@ -183,7 +183,8 @@ def plot_difference_spectrogram(mel_spectrogram1, # plot difference between to s
                                 ax=None,
                                 figure_size=(10,5),
                                 title='Difference Spectrogram'):
-   
+   #WIP. 
+
    # if no axis specified create singleton.
    if not ax:
       fig, ax = plt.subplots(figsize=figure_size)
@@ -200,17 +201,17 @@ def plot_difference_spectrogram(mel_spectrogram1, # plot difference between to s
       sr = 24000 #samples/second
       fmax = 12000 # maximal frequency
       hop = 256 # mel hop size used for fft to create mel spectrogram
-      # Calculate the absolute difference spectrogram
-      difference_spectrogram = np.abs(mel_spectrogram1 - mel_spectrogram2)
+      
+   # Calculate the absolute difference spectrogram
+   difference_spectrogram = np.abs(mel_spectrogram1 - mel_spectrogram2)
+   # Apply logarithmic scaling for better visualiz{ation
+   difference_spectrogram = np.log(1 + difference_spectrogram)
 
-    # Apply logarithmic scaling for better visualization
-    difference_spectrogram = np.log(1 + difference_spectrogram)
+   plt.title(title)
+   librosa.display.specshow(difference_spectrogram, cmap='viridis', sr=sr, hop_length=hop)
+   plt.colorbar(format='%+2.0f dB')
 
-    plt.title(title)
-    librosa.display.specshow(difference_spectrogram, cmap='viridis', sr=sr, hop_length=hop)
-    plt.colorbar(format='%+2.0f dB')
-
-    return 
+   return 
 
 def mel_input_check(mel): # handles mel if path or np array
    # Handle mel if path used as input

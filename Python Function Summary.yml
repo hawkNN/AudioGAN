@@ -8,9 +8,10 @@ mel_to_wave.py:
 meldataset.py: 
 models.py:
 run_bigvgan.py:
-speech_collection.py:
+collection_speech.py:
+collection_music.py:
 test.py:
 utils.py:
 make_a_mel.py: generate a mel spectrogram from audio wav file, basic visualization
-view_mels.py: animation of mel in synchrony with playing audio.
+view_mels.py: animation of mel in synchrony with playing audio. 
 
