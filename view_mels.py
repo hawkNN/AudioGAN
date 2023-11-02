@@ -12,7 +12,6 @@ import json
 import random
 import torch
 import numpy as np
-import threading
 from IPython.display import Audio, display
 from pydub.playback import play
 from matplotlib.animation import FuncAnimation
